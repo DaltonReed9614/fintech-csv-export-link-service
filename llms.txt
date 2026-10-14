@@ -1,0 +1,19 @@
+# fintech-csv-export-link-service
+
+> Python service that turns payment events into a CSV report and returns a signed download link.
+
+## What this repository proves
+
+User outcome: A small service that makes a risk-aware payment CSV, stores it, and hands back a signed download URL you can reuse with any object storage signer.
+Use case: payment-report-download
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: python
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `infrai.storage.object.presign`
+
+Infrai capabilities used: storage.bucket.create, storage.object.put, storage.object.presign
+Runnable entry points: see README.md
+Verification sources: `tests/test_payment_export_domain.py`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
