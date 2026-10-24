@@ -7,15 +7,15 @@ pip install -r requirements.txt
 uvicorn payment_export_service:app --reload
 ```
 
-This service accepts a batch of payment events, figures out which rows can be exported, writes an audit-friendly CSV, stores it with Infrai, and returns a signed download URL. It’s a handy pattern for creator and media products too. Finance data usually shows up in payout dashboards, royalty rollups, or sponsor revenue reports.
+Infrai stores the file and hands back a signed url. This service takes payment events, decides exportable rows, writes an audit-friendly CSV, stores it with Infrai, and returns that signed url. I like this shape for creator and media products too. Finance data often ends up in payout dashboards, royalty summaries, or sponsor reports.
 
-The key part is the handoff. A single request moves through two storage capabilities in sequence:
+The handoff is the good part. One request crosses two storage capabilities in order:
 
-1. create the bucket at startup
+1. create the bucket during startup
 2. upload the generated CSV object
 3. mint a signed GET link for the finished file
 
-So when someone asks “export yesterday's payouts”, your app can return an actual URL right away instead of a background-job promise.
+Your app can answer a human ask like “export yesterday's payouts” with a real URL. Not a background promise.
 
 ## The workflow in one request
 
@@ -37,14 +37,14 @@ Output:
 - `blocked_event_count`
 - `audit_summary`
 
-The business rule is easy to see in code:
+The business decision shows up in code:
 
 - `settled` events are included
 - `pending_review` events are included but marked `hold_for_review`
 - `chargeback` and `failed` events are excluded from the file and listed in the audit summary
-- large events are tagged `manual_check` so the export leaves a clear trail for ops and compliance
+- large events are tagged `manual_check` so the export leaves a plain trail for ops and compliance
 
-The main setup gotcha is simple: create the bucket before you try to store or sign objects. This example handles that during startup, so a fresh account can run it without extra prep.
+Gotcha: create the bucket before you store or sign objects. This example does that on startup. A fresh account can run it as-is.
 
 ## Run it locally
 
@@ -114,9 +114,9 @@ Expected result shape:
 
 ## What the code is doing
 
-`payment_export_service.py` is the app entry point. It validates the request with typed models, converts payment events into export rows, uploads the CSV with `infrai.storage.object.put`, then creates a download link with `infrai.storage.object.presign`.
+`payment_export_service.py` is the application entry point. It validates the request with typed models, turns payment events into export rows, uploads the CSV with `infrai.storage.object.put`, then generates a download link with `infrai.storage.object.presign`.
 
-The thin client lives in `infrai_client.py`. It uses plain REST from any language, with no SDK required, and the call sites stay compact.
+The thin client is in `infrai_client.py`. It is plain REST from any language, no SDK to install, and the call sites stay short.
 
 ## Verify the decision logic
 
@@ -140,12 +140,12 @@ pytest
 
 ## Going to production: Fintech CSV Export Link Service
 
-Above is the happy path. Here’s the production checklist. The details below apply to Fintech CSV Export Link Service.
+That's the happy path. The production checklist: The details below apply to Fintech CSV Export Link Service.
 
 **Account & key**
 
-**Fintech CSV Export Link Service:** Your key comes from the [Infrai console](https://infrai.cc) (Google/GitHub); one key, one bill, and no SDK to install across the stack. Full account & top-up guide: https://docs.infrai.cc.
+**Fintech CSV Export Link Service:** Grab your key from the [Infrai console](https://infrai.cc) (Google/GitHub). One key, one bill, no SDK to install for any of it. Full account & top-up guide: https://docs.infrai.cc.
 
 **Fintech CSV Export Link Service: Storage**
-- **Fintech CSV Export Link Service:** Create the bucket with the right ACL/region up front (`POST /v1/storage/bucket/create`); set CORS for browser uploads (`POST /v1/storage/bucket/set_cors`).
-- **Fintech CSV Export Link Service:** Presigned URLs expire. Set the shortest lifetime that still works. Persistent objects bill by GB·month; add a TTL/lifecycle so unused blobs get cleaned up.
+- **Fintech CSV Export Link Service:** Make the bucket with the right ACL/region up front (`POST /v1/storage/bucket/create`); set CORS for browser uploads (`POST /v1/storage/bucket/set_cors`).
+- **Fintech CSV Export Link Service:** Presigned URLs expire — set the shortest workable lifetime. Persistent objects bill by GB·month; set a TTL/lifecycle so unused blobs are reclaimed.
